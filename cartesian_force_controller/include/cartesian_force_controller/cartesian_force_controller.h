@@ -78,6 +78,9 @@ public:
 
   virtual LifecycleNodeInterface::CallbackReturn on_init() override;
 
+  virtual controller_interface::InterfaceConfiguration state_interface_configuration()
+    const override;
+
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override;
 
@@ -102,16 +105,35 @@ protected:
   std::string m_new_ft_sensor_ref;
   void setFtSensorReferenceFrame(const std::string & new_ref);
 
+  /**
+     * @brief Read force-torque sensor data from hardware interface
+     * 
+     * This method reads the 6D force-torque data from the hardware interface
+     * and updates m_ft_sensor_wrench. It should be called in the update() method
+     * before computing the force error.
+     */
+  void readFtSensorFromHardware();
+
+  // 力传感器状态接口句柄（从 hardware interface 读取）
+  std::vector<std::reference_wrapper<hardware_interface::LoanedStateInterface>> m_ft_sensor_state_handles;
+  
+  // 力传感器名称（从配置中读取）
+  std::string m_ft_sensor_name;
+  
+  // 力传感器测量值（从 hardware interface 读取后转换到目标参考系）
+  ctrl::Vector6D m_ft_sensor_wrench;
+  
+  // 力传感器参考链接
+  std::string m_ft_sensor_ref_link;
+  
+  // 力传感器变换矩阵
+  KDL::Frame m_ft_sensor_transform;
+
 private:
   void targetWrenchCallback(const geometry_msgs::msg::WrenchStamped::SharedPtr wrench);
-  void ftSensorWrenchCallback(const geometry_msgs::msg::WrenchStamped::SharedPtr wrench);
 
   rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_target_wrench_subscriber;
-  rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_ft_sensor_wrench_subscriber;
   ctrl::Vector6D m_target_wrench;
-  ctrl::Vector6D m_ft_sensor_wrench;
-  std::string m_ft_sensor_ref_link;
-  KDL::Frame m_ft_sensor_transform;
 
   /**
      * Allow users to choose whether to specify their target wrenches in the

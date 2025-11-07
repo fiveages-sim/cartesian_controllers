@@ -102,7 +102,7 @@ CartesianControllerBase::on_init()
     auto_declare<bool>("solver.publish_state_feedback", false);
     m_initialized = true;
   }
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return CallbackReturn::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -110,7 +110,7 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
 {
   if (m_configured)
   {
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+    return CallbackReturn::SUCCESS;
   }
 
   // Load user specified inverse kinematics solver
@@ -124,7 +124,7 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
   catch (pluginlib::PluginlibException & ex)
   {
     RCLCPP_ERROR(get_node()->get_logger(), ex.what());
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
 
   // Get kinematics specific configuration
@@ -140,31 +140,31 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
   if (m_robot_description.empty())
   {
     RCLCPP_ERROR(get_node()->get_logger(), "robot_description is empty");
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
   m_robot_base_link = get_node()->get_parameter("robot_base_link").as_string();
   if (m_robot_base_link.empty())
   {
     RCLCPP_ERROR(get_node()->get_logger(), "robot_base_link is empty");
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
   m_end_effector_link = get_node()->get_parameter("end_effector_link").as_string();
   if (m_end_effector_link.empty())
   {
     RCLCPP_ERROR(get_node()->get_logger(), "end_effector_link is empty");
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
 
   // Build a kinematic chain of the robot
   if (!robot_model.initString(m_robot_description))
   {
     RCLCPP_ERROR(get_node()->get_logger(), "Failed to parse urdf model from 'robot_description'");
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
   if (!kdl_parser::treeFromUrdfModel(robot_model, robot_tree))
   {
     RCLCPP_ERROR(get_node()->get_logger(), "Failed to parse KDL tree from urdf model");
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
   if (!robot_tree.getChain(m_robot_base_link, m_end_effector_link, m_robot_chain))
   {
@@ -173,7 +173,7 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
       "Failed to parse robot chain from urdf model. "
       "Do robot_base_link and end_effector_link exist?";
     RCLCPP_ERROR(get_node()->get_logger(), error.c_str());
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
 
   // Get names of actuated joints
@@ -181,7 +181,7 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
   if (m_joint_names.empty())
   {
     RCLCPP_ERROR(get_node()->get_logger(), "joints array is empty");
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
 
   // Parse joint limits
@@ -193,7 +193,7 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
     {
       RCLCPP_ERROR(get_node()->get_logger(), "Joint %s does not appear in robot_description",
                    m_joint_names[i].c_str());
-      return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+      return CallbackReturn::ERROR;
     }
     if (robot_model.getJoint(m_joint_names[i])->type == urdf::Joint::CONTINUOUS)
     {
@@ -225,7 +225,7 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
   if (m_cmd_interface_types.empty())
   {
     RCLCPP_ERROR(get_node()->get_logger(), "No command_interfaces specified");
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   }
   for (const auto & type : m_cmd_interface_types)
   {
@@ -233,7 +233,7 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
     {
       RCLCPP_ERROR(get_node()->get_logger(),
                    "Unsupported command interface: %s. Choose position or velocity", type.c_str());
-      return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+      return CallbackReturn::ERROR;
     }
   }
 
@@ -250,7 +250,7 @@ CartesianControllerBase::on_configure(const rclcpp_lifecycle::State & previous_s
 
   m_configured = true;
 
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return CallbackReturn::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -266,7 +266,7 @@ CartesianControllerBase::on_deactivate(const rclcpp_lifecycle::State & previous_
     this->release_interfaces();
     m_active = false;
   }
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return CallbackReturn::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -274,7 +274,7 @@ CartesianControllerBase::on_activate(const rclcpp_lifecycle::State & previous_st
 {
   if (m_active)
   {
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+    return CallbackReturn::SUCCESS;
   }
 
   // Get command handles.
@@ -308,7 +308,7 @@ CartesianControllerBase::on_activate(const rclcpp_lifecycle::State & previous_st
   if (!m_ik_solver->setStartState(m_joint_state_pos_handles))
   {
     RCLCPP_ERROR(get_node()->get_logger(), "Could not set start state");
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return CallbackReturn::ERROR;
   };
   m_ik_solver->updateKinematics();
 
@@ -317,7 +317,7 @@ CartesianControllerBase::on_activate(const rclcpp_lifecycle::State & previous_st
   writeJointControlCmds();
 
   m_active = true;
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return CallbackReturn::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -333,7 +333,7 @@ CartesianControllerBase::on_shutdown(const rclcpp_lifecycle::State & previous_st
     this->release_interfaces();
     m_active = false;
   }
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return CallbackReturn::SUCCESS;
 }
 
 void CartesianControllerBase::writeJointControlCmds()

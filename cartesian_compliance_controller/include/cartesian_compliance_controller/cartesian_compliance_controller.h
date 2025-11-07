@@ -77,6 +77,9 @@ public:
 
   virtual LifecycleNodeInterface::CallbackReturn on_init() override;
 
+  virtual controller_interface::InterfaceConfiguration state_interface_configuration()
+    const override;
+
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override;
 

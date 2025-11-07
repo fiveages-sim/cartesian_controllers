@@ -76,10 +76,18 @@ CartesianComplianceController::on_init()
   return TYPE::SUCCESS;
 }
 
+controller_interface::InterfaceConfiguration
+CartesianComplianceController::state_interface_configuration() const
+{
+  // 使用 ForceBase 的 state_interface_configuration 实现
+  // 这样可以确保从硬件接口读取六维力数据，与 cartesian_force_controller 一致
+  return ForceBase::state_interface_configuration();
+}
+
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CartesianComplianceController::on_configure(const rclcpp_lifecycle::State & previous_state)
 {
-  using TYPE = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+  using TYPE = CallbackReturn;
   if (MotionBase::on_configure(previous_state) != TYPE::SUCCESS ||
       ForceBase::on_configure(previous_state) != TYPE::SUCCESS)
   {
@@ -108,7 +116,7 @@ CartesianComplianceController::on_activate(const rclcpp_lifecycle::State & previ
 {
   // Base::on_activation(..) will get called twice,
   // but that's fine.
-  using TYPE = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+  using TYPE = CallbackReturn;
   if (MotionBase::on_activate(previous_state) != TYPE::SUCCESS ||
       ForceBase::on_activate(previous_state) != TYPE::SUCCESS)
   {
@@ -120,7 +128,7 @@ CartesianComplianceController::on_activate(const rclcpp_lifecycle::State & previ
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CartesianComplianceController::on_deactivate(const rclcpp_lifecycle::State & previous_state)
 {
-  using TYPE = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+  using TYPE = CallbackReturn;
   if (MotionBase::on_deactivate(previous_state) != TYPE::SUCCESS ||
       ForceBase::on_deactivate(previous_state) != TYPE::SUCCESS)
   {
@@ -134,6 +142,9 @@ controller_interface::return_type CartesianComplianceController::update(
 {
   // Synchronize the internal model and the real robot
   Base::m_ik_solver->synchronizeJointPositions(Base::m_joint_state_pos_handles);
+
+  // 从 hardware interface 读取力传感器数据（与 cartesian_force_controller 一致）
+  ForceBase::readFtSensorFromHardware();
 
   // Control the robot motion in such a way that the resulting net force
   // vanishes. This internal control needs some simulation time steps.
