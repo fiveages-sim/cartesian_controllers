@@ -46,6 +46,7 @@
 #include "controller_interface/controller_interface.hpp"
 #include "rclcpp/clock.hpp"
 #include "rclcpp/duration.hpp"
+#include "geometry_msgs/msg/pose.hpp"
 
 namespace cartesian_motion_controller {
     CartesianMotionController::CartesianMotionController() {
@@ -58,6 +59,9 @@ namespace cartesian_motion_controller {
             return ret;
         }
 
+        // Declare parameter for target pose topic (optional)
+        auto_declare<std::string>("target_pose_topic", "");
+
         return CallbackReturn::SUCCESS;
     }
 
@@ -68,9 +72,25 @@ namespace cartesian_motion_controller {
             return ret;
         }
 
-        m_target_frame_subscr = get_node()->create_subscription<geometry_msgs::msg::PoseStamped>(
-            get_node()->get_name() + std::string("/target_frame"), 3,
-            std::bind(&CartesianMotionController::targetFrameCallback, this, std::placeholders::_1));
+        // Get target pose topic parameter
+        m_target_pose_topic = get_node()->get_parameter("target_pose_topic").as_string();
+
+        // If target_pose_topic is specified, subscribe to Pose messages
+        // Otherwise, use the default PoseStamped subscription
+        if (!m_target_pose_topic.empty()) {
+            m_target_pose_subscr = get_node()->create_subscription<geometry_msgs::msg::Pose>(
+                m_target_pose_topic, 3,
+                std::bind(&CartesianMotionController::targetPoseCallback, this, std::placeholders::_1));
+            RCLCPP_INFO(get_node()->get_logger(), 
+                       "Subscribing to Pose messages on topic: %s", m_target_pose_topic.c_str());
+        } else {
+            m_target_frame_subscr = get_node()->create_subscription<geometry_msgs::msg::PoseStamped>(
+                get_node()->get_name() + std::string("/target_frame"), 3,
+                std::bind(&CartesianMotionController::targetFrameCallback, this, std::placeholders::_1));
+            RCLCPP_INFO(get_node()->get_logger(), 
+                       "Subscribing to PoseStamped messages on topic: %s/target_frame", 
+                       get_node()->get_name());
+        }
 
         return CallbackReturn::SUCCESS;
     }
@@ -189,6 +209,29 @@ namespace cartesian_motion_controller {
             KDL::Rotation::Quaternion(target->pose.orientation.x, target->pose.orientation.y,
                                       target->pose.orientation.z, target->pose.orientation.w),
             KDL::Vector(target->pose.position.x, target->pose.position.y, target->pose.position.z));
+    }
+
+    void CartesianMotionController::targetPoseCallback(
+        const geometry_msgs::msg::Pose::SharedPtr target) {
+        if (!this->isActive()) {
+            return;
+        }
+
+        if (std::isnan(target->position.x) || std::isnan(target->position.y) ||
+            std::isnan(target->position.z) || std::isnan(target->orientation.x) ||
+            std::isnan(target->orientation.y) || std::isnan(target->orientation.z) ||
+            std::isnan(target->orientation.w)) {
+            auto &clock = *get_node()->get_clock();
+            RCLCPP_WARN_STREAM_THROTTLE(get_node()->get_logger(), clock, 3000,
+                                        "NaN detected in target pose. Ignoring input.");
+            return;
+        }
+
+        // Directly treat the pose as in robot_base_link frame
+        m_target_frame = KDL::Frame(
+            KDL::Rotation::Quaternion(target->orientation.x, target->orientation.y,
+                                      target->orientation.z, target->orientation.w),
+            KDL::Vector(target->position.x, target->position.y, target->position.z));
     }
 } // namespace cartesian_motion_controller
 

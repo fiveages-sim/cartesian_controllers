@@ -47,16 +47,13 @@ namespace cartesian_compliance_controller
 CartesianComplianceController::CartesianComplianceController()
 // Base constructor won't be called in diamond inheritance, so call that
 // explicitly
-: Base::CartesianControllerBase(),
-  MotionBase::CartesianMotionController(),
-  ForceBase::CartesianForceController()
 {
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CartesianComplianceController::on_init()
 {
-  using TYPE = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+  using TYPE = CallbackReturn;
   if (MotionBase::on_init() != TYPE::SUCCESS || ForceBase::on_init() != TYPE::SUCCESS)
   {
     return TYPE::ERROR;
@@ -96,17 +93,17 @@ CartesianComplianceController::on_configure(const rclcpp_lifecycle::State & prev
 
   // Make sure compliance link is part of the robot chain
   m_compliance_ref_link = get_node()->get_parameter("compliance_ref_link").as_string();
-  if (!Base::robotChainContains(m_compliance_ref_link))
+  if (!robotChainContains(m_compliance_ref_link))
   {
     RCLCPP_ERROR_STREAM(get_node()->get_logger(), m_compliance_ref_link
-                                                    << " is not part of the kinematic chain from "
-                                                    << Base::m_robot_base_link << " to "
-                                                    << Base::m_end_effector_link);
+                        << " is not part of the kinematic chain from "
+                        << Base::m_robot_base_link << " to "
+                        << Base::m_end_effector_link);
     return TYPE::ERROR;
   }
 
   // Make sure sensor wrenches are interpreted correctly
-  ForceBase::setFtSensorReferenceFrame(m_compliance_ref_link);
+  setFtSensorReferenceFrame(m_compliance_ref_link);
 
   return TYPE::SUCCESS;
 }
@@ -141,14 +138,14 @@ controller_interface::return_type CartesianComplianceController::update(
   const rclcpp::Time & time, const rclcpp::Duration & period)
 {
   // Synchronize the internal model and the real robot
-  Base::m_ik_solver->synchronizeJointPositions(Base::m_joint_state_pos_handles);
+  m_ik_solver->synchronizeJointPositions(m_joint_state_pos_handles);
 
   // 从 hardware interface 读取力传感器数据（与 cartesian_force_controller 一致）
-  ForceBase::readFtSensorFromHardware();
+  readFtSensorFromHardware();
 
   // Control the robot motion in such a way that the resulting net force
   // vanishes. This internal control needs some simulation time steps.
-  for (int i = 0; i < Base::m_iterations; ++i)
+  for (int i = 0; i < m_iterations; ++i)
   {
     // The internal 'simulation time' is deliberately independent of the outer
     // control cycle.
@@ -158,11 +155,11 @@ controller_interface::return_type CartesianComplianceController::update(
     ctrl::Vector6D error = computeComplianceError();
 
     // Turn Cartesian error into joint motion
-    Base::computeJointControlCmds(error, internal_period);
+    computeJointControlCmds(error, internal_period);
   }
 
   // Write final commands to the hardware interface
-  Base::writeJointControlCmds();
+  writeJointControlCmds();
 
   return controller_interface::return_type::OK;
 }
@@ -182,15 +179,14 @@ ctrl::Vector6D CartesianComplianceController::computeComplianceError()
   ctrl::Vector6D net_force =
 
     // Spring force in base orientation
-    Base::displayInBaseLink(m_stiffness, m_compliance_ref_link) * MotionBase::computeMotionError()
+    displayInBaseLink(m_stiffness, m_compliance_ref_link) * computeMotionError()
 
     // Sensor and target force in base orientation
-    + ForceBase::computeForceError();
+    + computeForceError();
 
   return net_force;
 }
-
-}  // namespace cartesian_compliance_controller
+} // namespace cartesian_compliance_controller
 
 // Pluginlib
 #include <pluginlib/class_list_macros.hpp>

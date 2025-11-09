@@ -75,26 +75,26 @@ class CartesianComplianceController : public cartesian_motion_controller::Cartes
 public:
   CartesianComplianceController();
 
-  virtual LifecycleNodeInterface::CallbackReturn on_init() override;
+  CallbackReturn on_init() override;
 
-  virtual controller_interface::InterfaceConfiguration state_interface_configuration()
-    const override;
+  controller_interface::InterfaceConfiguration state_interface_configuration()
+  const override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
+  CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(
+  CallbackReturn on_activate(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(
+  CallbackReturn on_deactivate(
     const rclcpp_lifecycle::State & previous_state) override;
 
   controller_interface::return_type update(const rclcpp::Time & time,
                                            const rclcpp::Duration & period) override;
 
-  using Base = cartesian_controller_base::CartesianControllerBase;
-  using MotionBase = cartesian_motion_controller::CartesianMotionController;
-  using ForceBase = cartesian_force_controller::CartesianForceController;
+  using Base = CartesianControllerBase;
+  using MotionBase = CartesianMotionController;
+  using ForceBase = CartesianForceController;
 
 private:
   /**
@@ -107,7 +107,6 @@ private:
   ctrl::Matrix6D m_stiffness;
   std::string m_compliance_ref_link;
 };
-
-}  // namespace cartesian_compliance_controller
+} // namespace cartesian_compliance_controller
 
 #endif

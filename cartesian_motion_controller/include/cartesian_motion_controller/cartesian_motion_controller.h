@@ -46,6 +46,7 @@
 #include <controller_interface/controller_interface.hpp>
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/pose.hpp"
 
 namespace cartesian_motion_controller
 {
@@ -77,21 +78,21 @@ public:
   CartesianMotionController();
   virtual ~CartesianMotionController() = default;
 
-  virtual LifecycleNodeInterface::CallbackReturn on_init() override;
+  CallbackReturn on_init() override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
+  CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(
+  CallbackReturn on_activate(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(
+  CallbackReturn on_deactivate(
     const rclcpp_lifecycle::State & previous_state) override;
 
   controller_interface::return_type update(const rclcpp::Time & time,
                                            const rclcpp::Duration & period) override;
 
-  using Base = cartesian_controller_base::CartesianControllerBase;
+  using Base = CartesianControllerBase;
 
 protected:
   /**
@@ -108,9 +109,13 @@ protected:
   KDL::Frame m_target_frame;
   KDL::Frame m_current_frame;
 
-  void targetFrameCallback(const geometry_msgs::msg::PoseStamped::SharedPtr target);
+  void targetFrameCallback(geometry_msgs::msg::PoseStamped::SharedPtr target);
+  void targetPoseCallback(geometry_msgs::msg::Pose::SharedPtr target);
 
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr m_target_frame_subscr;
+  rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr m_target_pose_subscr;
+  
+  std::string m_target_pose_topic;
 };
 
 }  // namespace cartesian_motion_controller

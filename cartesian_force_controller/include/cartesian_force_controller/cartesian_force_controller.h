@@ -76,24 +76,24 @@ class CartesianForceController : public virtual cartesian_controller_base::Carte
 public:
   CartesianForceController();
 
-  virtual LifecycleNodeInterface::CallbackReturn on_init() override;
+  CallbackReturn on_init() override;
 
-  virtual controller_interface::InterfaceConfiguration state_interface_configuration()
-    const override;
+  controller_interface::InterfaceConfiguration state_interface_configuration()
+  const override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
+  CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(
+  CallbackReturn on_activate(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(
+  CallbackReturn on_deactivate(
     const rclcpp_lifecycle::State & previous_state) override;
 
   controller_interface::return_type update(const rclcpp::Time & time,
                                            const rclcpp::Duration & period) override;
 
-  using Base = cartesian_controller_base::CartesianControllerBase;
+  using Base = CartesianControllerBase;
 
 protected:
   /**
@@ -115,24 +115,30 @@ protected:
   void readFtSensorFromHardware();
 
   // 力传感器状态接口句柄（从 hardware interface 读取）
-  std::vector<std::reference_wrapper<hardware_interface::LoanedStateInterface>> m_ft_sensor_state_handles;
-  
+  std::vector<std::reference_wrapper<hardware_interface::LoanedStateInterface>>
+  m_ft_sensor_state_handles;
+
   // 力传感器名称（从配置中读取）
   std::string m_ft_sensor_name;
-  
-  // 力传感器测量值（从 hardware interface 读取后转换到目标参考系）
+
+  // 力传感器测量值（从 hardware interface 或 topic 读取后转换到目标参考系）
   ctrl::Vector6D m_ft_sensor_wrench;
-  
+
   // 力传感器参考链接
   std::string m_ft_sensor_ref_link;
-  
+
   // 力传感器变换矩阵
   KDL::Frame m_ft_sensor_transform;
 
+  // 是否使用 topic 模式读取力传感器数据
+  bool m_use_ft_sensor_topic = false;
+
 private:
-  void targetWrenchCallback(const geometry_msgs::msg::WrenchStamped::SharedPtr wrench);
+  void targetWrenchCallback(geometry_msgs::msg::WrenchStamped::SharedPtr wrench);
+  void ftSensorWrenchCallback(geometry_msgs::msg::WrenchStamped::SharedPtr wrench);
 
   rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_target_wrench_subscriber;
+  rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr m_ft_sensor_wrench_subscriber;
   ctrl::Vector6D m_target_wrench;
 
   /**
@@ -143,7 +149,6 @@ private:
      */
   bool m_hand_frame_control;
 };
-
-}  // namespace cartesian_force_controller
+} // namespace cartesian_force_controller
 
 #endif
